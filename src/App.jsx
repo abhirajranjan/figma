@@ -11,13 +11,13 @@ const App = () => {
   });
 
   const toggleDrawing = () => {
-    setIsDrawing(!isDrawing);
+    setIsDrawing((prev) => !prev);
     selectShape(null);
   };
 
   const handleDeleteSelected = () => {
     if (selectedId) {
-      setRectangles(rectangles.filter((rect) => rect.id !== selectedId));
+      setRectangles((rects) => rects.filter((rect) => rect.id !== selectedId));
       selectShape(null);
     }
   };

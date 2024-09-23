@@ -37,10 +37,12 @@ export const StagingArea = ({
   const handleMouseMove = (e) => {
     if (!isDrawing || !newRectangle) return;
     const pos = e.target.getStage().getPointerPosition();
-    setNewRectangle({
-      ...newRectangle,
-      width: pos.x - newRectangle.x,
-      height: pos.y - newRectangle.y,
+    setNewRectangle((newRect) => {
+      return {
+        ...newRect,
+        width: pos.x - newRect.x,
+        height: pos.y - newRect.y,
+      }
     });
   };
 
