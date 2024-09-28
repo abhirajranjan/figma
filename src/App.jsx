@@ -35,7 +35,6 @@ const App = () => {
       <div style={{ marginBottom: "10px", display:"flex", gap:"5px" }}>
         <button
           onClick={toggleDrawing}
-          style={{ backgroundColor: isDrawing ? "lightblue" : "" }}
         >
           {isDrawing ? "Cancel Drawing" : "Add Rectangle"}
         </button>
