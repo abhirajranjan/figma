@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+/* eslint-disable react/prop-types */
+import { useState } from "react";
 import { Stage, Layer, Rect } from "react-konva";
 import Rectangle from "./rectangle";
 import config from "../config";

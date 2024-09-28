@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { StagingArea } from "./components/stage";
 
 const App = () => {
@@ -32,10 +32,10 @@ const App = () => {
 
   return (
     <div>
-      <div style={{ marginBottom: "10px" }}>
+      <div style={{ marginBottom: "10px", display:"flex", gap:"5px" }}>
         <button
           onClick={toggleDrawing}
-          style={{ backgroundColor: isDrawing ? "lightblue" : "white" }}
+          style={{ backgroundColor: isDrawing ? "lightblue" : "" }}
         >
           {isDrawing ? "Cancel Drawing" : "Add Rectangle"}
         </button>
