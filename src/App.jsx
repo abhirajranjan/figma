@@ -1,58 +1,144 @@
-import { useState } from "react";
-import { StagingArea } from "./components/stage";
+import { useCallback, useEffect, useState } from 'react';
+import { FabricJSCanvas, useFabricJSEditor } from 'fabricjs-react';
 
-const App = () => {
-  const [rectangles, setRectangles] = useState([]);
-  const [selectedId, selectShape] = useState(null);
+const RECTANGLE_CONFIG = {
+  fill: 'rgba(0,0,255,0.3)',
+  stroke: 'blue',
+  strokeWidth: 2,
+  selectable: true,
+  hasControls: true,
+};
+
+const useDrawingCanvas = () => {
+  const { editor, onReady } = useFabricJSEditor();
   const [isDrawing, setIsDrawing] = useState(false);
-  const [stageSize, setStageSize] = useState({
-    width: window.innerWidth,
-    height: window.innerHeight,
+  const [drawingState, setDrawingState] = useState({
+    startX: 0,
+    startY: 0,
+    rect: null,
   });
 
-  const toggleDrawing = () => {
-    setIsDrawing((prev) => !prev);
-    selectShape(null);
-  };
+  const handleMouseDown = useCallback((options) => {
+    if (!isDrawing || !editor?.canvas) return;
 
-  const handleDeleteSelected = () => {
-    if (selectedId) {
-      setRectangles((rects) => rects.filter((rect) => rect.id !== selectedId));
-      selectShape(null);
-    }
-  };
+    const pointer = editor.canvas.getPointer(options.e);
+    // Use window.fabric instead of direct fabric import
+    const rect = new window.fabric.Rect({
+      ...RECTANGLE_CONFIG,
+      left: pointer.x,
+      top: pointer.y,
+      width: 0,
+      height: 0,
+      rx: 10,
+      ry: 10,
+      objectCaching: false,
+    });
 
-  const handleMoveToFront = () => {
-    if (selectedId) {
-      const selectedRect = rectangles.find((rect) => rect.id === selectedId);
-      const otherRects = rectangles.filter((rect) => rect.id !== selectedId);
-      setRectangles([...otherRects, selectedRect]);
+    rect.on('scaling', function () {
+      this.set({
+        width: this.width * this.scaleX,
+        height: this.height * this.scaleY,
+        scaleX: 1,
+        scaleY: 1
+      })
+    })
+
+    editor.canvas.add(rect);
+
+    setDrawingState({
+      startX: pointer.x,
+      startY: pointer.y,
+      rect,
+    });
+  }, [editor, isDrawing]);
+
+  const handleMouseMove = useCallback((options) => {
+    if (!isDrawing || !editor?.canvas || !drawingState.rect) return;
+
+    const pointer = editor.canvas.getPointer(options.e);
+    const { startX, startY, rect } = drawingState;
+
+    const width = Math.abs(pointer.x - startX);
+    const height = Math.abs(pointer.y - startY);
+
+    rect.set({
+      width,
+      height,
+      left: pointer.x < startX ? pointer.x : startX,
+      top: pointer.y < startY ? pointer.y : startY,
+    });
+
+    editor.canvas.renderAll();
+  }, [editor, isDrawing, drawingState]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsDrawing(false);
+    setDrawingState(prev => ({ ...prev, rect: null }));
+  }, []);
+
+  useEffect(() => {
+    if (!editor?.canvas) return;
+
+    editor.canvas.on('mouse:down', handleMouseDown);
+    editor.canvas.on('mouse:move', handleMouseMove);
+    editor.canvas.on('mouse:up', handleMouseUp);
+
+    return () => {
+      if (editor?.canvas) {
+        editor.canvas.off('mouse:down', handleMouseDown);
+        editor.canvas.off('mouse:move', handleMouseMove);
+        editor.canvas.off('mouse:up', handleMouseUp);
+      }
+    };
+  }, [editor, handleMouseDown, handleMouseMove, handleMouseUp]);
+
+  const startDrawing = useCallback(() => {
+    setIsDrawing(true);
+  }, []);
+
+  const deleteSelectedObject = useCallback(() => {
+    if (!editor?.canvas) return;
+
+    const activeObject = editor.canvas.getActiveObject();
+    if (activeObject) {
+      editor.canvas.remove(activeObject);
+      editor.canvas.renderAll();
     }
-  }
+  }, [editor]);
+
+  return {
+    editor,
+    onReady,
+    startDrawing,
+    deleteSelectedObject,
+  };
+};
+
+const App = () => {
+  const { onReady, startDrawing, deleteSelectedObject } = useDrawingCanvas();
 
   return (
-    <div>
-      <div style={{ marginBottom: "10px", display:"flex", gap:"5px" }}>
+    <div className="p-4">
+      <div className="space-x-4 mb-4">
         <button
-          onClick={toggleDrawing}
+          className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          onClick={startDrawing}
         >
-          {isDrawing ? "Cancel Drawing" : "Add Rectangle"}
+          Draw Rectangle
         </button>
-        <button onClick={handleDeleteSelected} disabled={!selectedId}>
-          Delete Selected
-        </button>
-        <button onClick={handleMoveToFront} disabled={!selectedId}>
-          Move to Front
+        <button
+          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          onClick={deleteSelectedObject}
+        >
+          Delete Selected Rectangle
         </button>
       </div>
-      <StagingArea
-        stageSize={stageSize}
-        selectedId={selectedId}
-        selectShape={selectShape}
-        isDrawing={isDrawing}
-        rectangles={rectangles}
-        setRectangles={setRectangles}
-      />
+      <div className="border border-gray-300 rounded">
+        <FabricJSCanvas
+          className="w-[800px] h-[600px]"
+          onReady={onReady}
+        />
+      </div>
     </div>
   );
 };
